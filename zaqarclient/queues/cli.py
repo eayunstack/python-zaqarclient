@@ -19,13 +19,14 @@ from oslo_log import log as logging
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_QUEUES_API_VERSION = '2'
+DEFAULT_QUEUES_API_VERSION = '100'
 API_VERSION_OPTION = 'os_queues_api_version'
 API_NAME = "messaging"
 API_VERSIONS = {
     "1": "zaqarclient.queues.v1.client.Client",
     "1.1": "zaqarclient.queues.v1.client.Client",
     "2": "zaqarclient.queues.v2.client.Client",
+    "100": "zaqarclient.eayun.client.Client",
 }
 
 _MESSAGING_ENDPOINT = None
