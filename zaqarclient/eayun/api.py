@@ -19,3 +19,23 @@ from zaqarclient.queues.v2 import api
 class Es(api.V2):
     label = 'v2'
     schema = api.V2.schema.copy()
+
+
+Es.schema.update({
+    'queue_purge': {
+        'ref': 'queues/{queue_name}/purge',
+        'method': 'DELETE',
+        'required': ['queue_name'],
+        'properties': {
+            'queue_name': {'type': 'string'}
+        }
+    },
+    'queue_get_monitor': {
+        'ref': 'monitors/queues/{queue_name}',
+        'method': 'GET',
+        'required': ['queue_name'],
+        'properties': {
+            'queue_name': {'type': 'string'}
+        }
+    },
+})

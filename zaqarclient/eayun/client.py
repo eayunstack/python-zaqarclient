@@ -34,3 +34,14 @@ class Client(client.Client):
     """
 
     queues_module = queues
+
+    def queue(self, ref, **kwargs):
+        """Returns a queue instance
+
+        :param ref: Queue's reference id.
+        :type ref: `six.text_type`
+
+        :returns: A queue instance
+        :rtype: `queues.Queue`
+        """
+        return self.queues_module.Queue(self, ref, **kwargs)

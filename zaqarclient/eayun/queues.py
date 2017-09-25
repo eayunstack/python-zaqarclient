@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from oslo_utils import timeutils
+from zaqarclient.eayun import core
 from zaqarclient.queues.v2 import queues
 
 
@@ -38,6 +39,57 @@ class Queue(queues.Queue):
     def updated_at(self):
         if self._updated_at:
             return timeutils.iso8601_from_timestamp(self._updated_at)
+
+    @property
+    def monitor(self):
+        req, trans = self.client._request_and_transport()
+        monitor = core.queue_get_monitor(trans, req, self._name)
+        queue = core.queue_get(trans, req, self._name)
+        self._created_at = queue['queue'].get('created_at')
+        self._updated_at = queue['queue'].get('updated_at')
+        metadata = queue['queue'].get('metadata', {})
+        monitor_body = {
+            'name': self._name,
+            'metadata': metadata,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
+        }
+        m = monitor.keys()[0]
+        for mk in monitor[m].keys():
+            monitor_body[mk] = monitor[m][mk]
+        return monitor_body
+
+    def metadata(self, new_meta=None):
+        """Get metadata and return it
+
+        :param new_meta: A dictionary containing
+            an updated metadata object. If present
+            the queue metadata will be updated in
+            remote server. If the new_meta is empty,
+            the metadata object will be cleared.
+        :type new_meta: `dict`
+
+        :returns: The queue metadata.
+        """
+        req, trans = self.client._request_and_transport()
+
+        queue = core.queue_get(trans, req, self._name)
+
+        self._metadata = queue['queue'].get('metadata', {})
+
+        if new_meta is not None:
+            changes = []
+            for key, value in new_meta.items():
+                # If key exists, replace it's value.
+                if self._metadata.get(key, None):
+                    changes.append({'op': 'replace',
+                                    'path': '/metadata/%s' % key,
+                                    'value': value})
+
+            self._metadata = core.queue_update(trans, req, self._name,
+                                               metadata=changes)
+
+        return self._metadata
 
 
 def create_object(parent):

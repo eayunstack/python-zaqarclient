@@ -13,8 +13,12 @@
 #    under the License.
 
 from osc_lib import utils
+from osc_lib.command import command
+from oslo_log import log as logging
 
+from zaqarclient._i18n import _
 from zaqarclient.queues.v2 import cli
+from zaqarclient.transport import errors
 
 
 def _get_client(obj, parsed_args):
@@ -39,3 +43,58 @@ class ListQueues(cli.ListQueues):
         data = client.queues(**kwargs)
         columns = tuple(columns)
         return (columns, (utils.get_item_properties(s, columns) for s in data))
+
+
+class CreateQueue(cli.CreateQueue):
+    """Create a queue"""
+    pass
+
+
+class DeleteQueue(cli.DeleteQueue):
+    """Delete a queue"""
+    pass
+
+
+class SetQueueMetadata(cli.SetQueueMetadata):
+    """Set queue metadata"""
+    pass
+
+
+class PurgeQueue(cli.PurgeQueue):
+    """Purge a queue"""
+    pass
+
+
+class GetQueueMonitor(command.ShowOne):
+    """Get queue stats"""
+
+    _description = _("Get queue monitor")
+    log = logging.getLogger(__name__ + ".GetQueueMonitor")
+
+    def get_parser(self, prog_name):
+        parser = super(GetQueueMonitor, self).get_parser(prog_name)
+        parser.add_argument(
+            "queue_name",
+            metavar="<queue_name>",
+            help="Name of the queue")
+        return parser
+
+    def take_action(self, parsed_args):
+        client = _get_client(self, parsed_args)
+        queue_name = parsed_args.queue_name
+        queue = client.queue(queue_name, auto_create=False)
+
+        try:
+            monitor = queue.monitor
+        except errors.ResourceNotFound:
+            raise RuntimeError('Queue(%s) does not exist.' % queue_name)
+
+        columns = ("Name", "Metadata", "msg_counts", "msg_bytes",
+                   "bulk_msg_counts", "bulk_msg_bytes",
+                   "consume_msg_counts", "consume_msg_bytes",
+                   "active_msgs", "inactive_msgs",
+                   "delayed_msgs", "deleted_msgs",
+                   "Created_at", "Updated_at"
+                   )
+        data = dict(monitor)
+        return columns, utils.get_dict_properties(data, columns)
