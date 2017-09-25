@@ -18,6 +18,7 @@ from zaqarclient.queues.v2 import client
 from zaqarclient.eayun import core
 from zaqarclient.eayun import queues
 from zaqarclient.eayun import topics
+from zaqarclient.eayun import subscription
 
 
 class Client(client.Client):
@@ -75,3 +76,33 @@ class Client(client.Client):
                                   topic_list,
                                   'topics',
                                   self.topics_module.create_object(self))
+
+    def subscription(self, topic_name, **kwargs):
+        """Returns a subscription instance
+
+        :param topic_name: Name of the topic to subscribe to.
+        :type topic_name: `six.text_type`
+
+        :returns: A subscription instance
+        :rtype: `subscription.Subscription`
+        """
+        return subscription.Subscription(self, topic_name, **kwargs)
+
+    def subscriptions(self, topic_name, **params):
+        """Gets a list of subscriptions from the server
+
+        :param params: Filters to use for getting subscriptions
+        :type params: **kwargs dict.
+
+        :returns: A list of subscriptions
+        :rtype: `list`
+        """
+        req, trans = self._request_and_transport()
+
+        subscription_list = core.subscription_list(trans, req, topic_name,
+                                                   **params)
+
+        return iterator._Iterator(self,
+                                  subscription_list,
+                                  'subscriptions',
+                                  subscription.create_object(self))

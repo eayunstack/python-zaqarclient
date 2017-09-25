@@ -172,3 +172,119 @@ def topic_update(transport, request, name, metadata, callback=None):
 
     resp = transport.send(request)
     return resp.deserialized_content
+
+
+def subscription_get(transport, request, topic_name, subscription_id):
+    """Gets a particular subscription data
+
+    :param transport: Transport instance to use
+    :type transport: `transport.base.Transport`
+    :param request: Request instance ready to be sent.
+    :type request: `transport.request.Request`
+    :param topic_name: Topic reference name.
+    :type topic_name: `six.text_type`
+    :param subscription_id: ID of subscription.
+    :type subscription_id: `six.text_type`
+
+    """
+
+    request.operation = 'subscription_get'
+    request.params['topic_name'] = topic_name
+    request.params['subscription_id'] = subscription_id
+
+    resp = transport.send(request)
+    return resp.deserialized_content
+
+
+def subscription_create(transport, request, topic_name, subscription_data):
+    """Creates a new subscription against the `topic_name`
+
+
+    :param transport: Transport instance to use
+    :type transport: `transport.base.Transport`
+    :param request: Request instance ready to be sent.
+    :type request: `transport.request.Request`
+    :param topic_name: Topic reference name.
+    :type topic_name: `six.text_type`
+    :param subscription_data: Subscription's properties, i.e: subscriber,
+        ttl, options.
+    :type subscription_data: `dict`
+    """
+
+    request.operation = 'subscription_create'
+    request.params['topic_name'] = topic_name
+    request.content = json.dumps(subscription_data)
+    resp = transport.send(request)
+
+    return resp.deserialized_content
+
+
+def subscription_update(transport, request, topic_name, subscription_id,
+                        subscription_data):
+    """Updates the subscription
+
+    :param transport: Transport instance to use
+    :type transport: `transport.base.Transport`
+    :param request: Request instance ready to be sent.
+    :type request: `transport.request.Request`
+    :param topic_name: Topic reference name.
+    :type topic_name: `six.text_type`
+    :param subscription_id: ID of subscription.
+    :type subscription_id: `six.text_type`
+    :param subscription_data: Subscription's properties, i.e: subscriber,
+        ttl, options.
+    :type subscription_data: `dict`
+    """
+
+    request.operation = 'subscription_update'
+    request.params['topic_name'] = topic_name
+    request.params['subscription_id'] = subscription_id
+    request.content = json.dumps(subscription_data)
+
+    resp = transport.send(request)
+    return resp.deserialized_content
+
+
+def subscription_delete(transport, request, topic_name, subscription_id):
+    """Deletes the subscription
+
+    :param transport: Transport instance to use
+    :type transport: `transport.base.Transport`
+    :param request: Request instance ready to be sent.
+    :type request: `transport.request.Request`
+    :param topic_name: Topic reference name.
+    :type topic_name: `six.text_type`
+    :param subscription_id: ID of subscription.
+    :type subscription_id: `six.text_type`
+    """
+
+    request.operation = 'subscription_delete'
+    request.params['topic_name'] = topic_name
+    request.params['subscription_id'] = subscription_id
+    transport.send(request)
+
+
+def subscription_list(transport, request, topic_name, **kwargs):
+    """Gets a list of subscriptions
+
+    :param transport: Transport instance to use
+    :type transport: `transport.base.Transport`
+    :param request: Request instance ready to be sent.
+    :type request: `transport.request.Request`
+    :param topic_name: Topic reference name.
+    :type topic_name: `six.text_type`
+    :param kwargs: Optional arguments for this operation.
+        - marker: Where to start getting subscriptions from.
+        - limit: Maximum number of subscriptions to get.
+    """
+
+    request.operation = 'subscription_list'
+    request.params['topic_name'] = topic_name
+    request.params.update(kwargs)
+
+    resp = transport.send(request)
+
+    if not resp.content:
+        return {'links': [], 'subscriptions': []}
+
+    return resp.deserialized_content

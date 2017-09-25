@@ -87,4 +87,47 @@ Es.schema.update({
             'topic_name': {'type': 'string'}
         }
     },
+    'subscription_create': {
+        'ref': 'topics/{topic_name}/subscriptions',
+        'method': 'POST',
+        'required': ['topic_name'],
+        'properties': {
+            'topic_name': {'type': 'string'}
+        },
+    },
+    'subscription_update': {
+        'ref': 'topics/{topic_name}/subscriptions/{subscription_id}',
+        'method': 'PATCH',
+        'required': ['topic_name', 'subscription_id'],
+        'properties': {
+            'topic_name': {'type': 'string'},
+            'subscription_id': {'type': 'string'}
+        }
+    },
+    'subscription_delete': {
+        'ref': 'topics/{topic_name}/subscriptions/{subscription_id}',
+        'method': 'DELETE',
+        'required': ['topic_name', 'subscription_id'],
+        'properties': {
+            'topic_name': {'type': 'string'},
+            'subscription_id': {'type': 'string'}
+        }
+    },
+    'subscription_list': {
+        'ref': 'topics/{topic_name}/subscriptions',
+        'method': 'GET',
+        'properties': {
+            'marker': {'type': 'string'},
+            'limit': {'type': 'integer'},
+            'detailed': {'type': 'boolean'}
+        }
+    },
+    'subscription_get': {
+        'ref': 'topics/{topic_name}/subscriptions/{subscription_id}',
+        'method': 'GET',
+        'properties': {
+            'topic_name': {'type': 'string'},
+            'subscription_id': {'type': 'string'}
+        }
+    },
 })
