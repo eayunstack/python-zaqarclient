@@ -13,8 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from zaqarclient.queues.v1 import iterator
 from zaqarclient.queues.v2 import client
+from zaqarclient.eayun import core
 from zaqarclient.eayun import queues
+from zaqarclient.eayun import topics
 
 
 class Client(client.Client):
@@ -34,6 +37,7 @@ class Client(client.Client):
     """
 
     queues_module = queues
+    topics_module = topics
 
     def queue(self, ref, **kwargs):
         """Returns a queue instance
@@ -45,3 +49,29 @@ class Client(client.Client):
         :rtype: `queues.Queue`
         """
         return self.queues_module.Queue(self, ref, **kwargs)
+
+    def topic(self, ref, **kwargs):
+        """Returns a topic instance
+
+        :param ref: Topic's reference id.
+        :type ref: `six.text_type`
+
+        :returns: A topic instance
+        :rtype: `topics.Topic`
+        """
+        return self.topics_module.Topic(self, ref, **kwargs)
+
+    def topics(self, **params):
+        """Gets a list of topics from the server
+
+        :returns: A list of topics
+        :rtype: `list`
+        """
+        req, trans = self._request_and_transport()
+
+        topic_list = core.topic_list(trans, req, **params)
+
+        return iterator._Iterator(self,
+                                  topic_list,
+                                  'topics',
+                                  self.topics_module.create_object(self))

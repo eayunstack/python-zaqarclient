@@ -38,4 +38,53 @@ Es.schema.update({
             'queue_name': {'type': 'string'}
         }
     },
+
+    'topic_list': {
+        'ref': 'topics',
+        'method': 'GET',
+        'properties': {
+            'marker': {'type': 'string'},
+            'limit': {'type': 'integer'},
+            'detailed': {'type': 'boolean'}
+        }
+    },
+    'topic_get': {
+        'ref': 'topics/{topic_name}',
+        'method': 'GET',
+        'properties': {
+            'topic_name': {'type': 'string'}
+        }
+    },
+    'topic_create': {
+        'ref': 'topics/{topic_name}',
+        'method': 'PUT',
+        'required': ['topic_name'],
+        'properties': {
+            'topic_name': {'type': 'string'}
+        },
+    },
+    'topic_update': {
+        'ref': 'topics/{topic_name}',
+        'method': 'PATCH',
+        'required': ['topic_name'],
+        'properties': {
+            'topic_name': {'type': 'string'}
+        }
+    },
+    'topic_delete': {
+        'ref': 'topics/{topic_name}',
+        'method': 'DELETE',
+        'required': ['topic_name'],
+        'properties': {
+            'topic_name': {'type': 'string'}
+        }
+    },
+    'topic_get_monitor': {
+        'ref': 'monitors/topics/{topic_name}',
+        'method': 'GET',
+        'required': ['topic_name'],
+        'properties': {
+            'topic_name': {'type': 'string'}
+        }
+    },
 })

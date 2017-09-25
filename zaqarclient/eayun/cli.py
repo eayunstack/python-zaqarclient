@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import json
+
 from osc_lib import utils
 from osc_lib.command import command
 from oslo_log import log as logging
@@ -98,3 +100,153 @@ class GetQueueMonitor(command.ShowOne):
                    )
         data = dict(monitor)
         return columns, utils.get_dict_properties(data, columns)
+
+
+class ListTopics(command.Lister):
+    """List available topics"""
+
+    _description = _("List available topics")
+    log = logging.getLogger(__name__ + ".ListTopics")
+
+    def get_parser(self, prog_name):
+        parser = super(ListTopics, self).get_parser(prog_name)
+        parser.add_argument(
+            "--marker",
+            metavar="<topic_id>",
+            help="Topic's paging marker")
+        parser.add_argument(
+            "--limit",
+            metavar="<limit>",
+            help="Page size limit")
+        parser.add_argument(
+            "--detailed",
+            action="store_true",
+            help="If show detailed information of topic")
+
+        return parser
+
+    def take_action(self, parsed_args):
+        client = _get_client(self, parsed_args)
+        kwargs = {}
+        columns = ["Name"]
+        if parsed_args.marker is not None:
+            kwargs["marker"] = parsed_args.marker
+        if parsed_args.limit is not None:
+            kwargs["limit"] = parsed_args.limit
+        if parsed_args.detailed is not None and parsed_args.detailed:
+            kwargs["detailed"] = parsed_args.detailed
+            columns.extend(["Metadata_Dict", "Href",
+                            "Created_at", "Updated_at"])
+        data = client.topics(**kwargs)
+        columns = tuple(columns)
+        return (columns, (utils.get_item_properties(s, columns) for s in data))
+
+
+class CreateTopic(command.ShowOne):
+    """Create a topic"""
+
+    _description = _("Create a topic")
+    log = logging.getLogger(__name__ + ".CreateTopic")
+
+    def get_parser(self, prog_name):
+        parser = super(CreateTopic, self).get_parser(prog_name)
+        parser.add_argument(
+            "topic_name",
+            metavar="<topic_name>",
+            help="Name of the topic")
+        return parser
+
+    def take_action(self, parsed_args):
+        client = _get_client(self, parsed_args)
+        topic_name = parsed_args.topic_name
+        data = client.topic(topic_name, force_create=True)
+        columns = ('Name',)
+        return columns, utils.get_item_properties(data, columns)
+
+
+class DeleteTopic(command.Command):
+    """Delete a topic"""
+
+    _description = _("Delete a topic")
+    log = logging.getLogger(__name__ + ".DeleteTopic")
+
+    def get_parser(self, prog_name):
+        parser = super(DeleteTopic, self).get_parser(prog_name)
+        parser.add_argument(
+            "topic_name",
+            metavar="<topic_name>",
+            help="Name of the topic")
+        return parser
+
+    def take_action(self, parsed_args):
+        client = _get_client(self, parsed_args)
+        topic_name = parsed_args.topic_name
+        client.topic(topic_name).delete()
+
+
+class GetTopicMonitor(command.ShowOne):
+    """Get topic stats"""
+
+    _description = _("Get topic monitor")
+    log = logging.getLogger(__name__ + ".GetTopicMonitor")
+
+    def get_parser(self, prog_name):
+        parser = super(GetTopicMonitor, self).get_parser(prog_name)
+        parser.add_argument(
+            "topic_name",
+            metavar="<topic_name>",
+            help="Name of the topic")
+        return parser
+
+    def take_action(self, parsed_args):
+        client = _get_client(self, parsed_args)
+        topic_name = parsed_args.topic_name
+        topic = client.topic(topic_name, auto_create=False)
+
+        try:
+            monitor = topic.monitor
+        except errors.ResourceNotFound:
+            raise RuntimeError('Topic(%s) does not exist.' % topic_name)
+
+        columns = ("Name", "Metadata", "msg_counts", "msg_bytes",
+                   "bulk_msg_counts", "bulk_msg_bytes",
+                   "sub_msg_counts", "sub_msg_bytes",
+                   "total_sub_msg_counts", "total_sub_msg_bytes",
+                   "Created_at", "Updated_at"
+                   )
+        data = dict(monitor)
+        return columns, utils.get_dict_properties(data, columns)
+
+
+class SetTopicMetadata(command.Command):
+    """Set topic metadata"""
+
+    _description = _("Set topic metadata")
+    log = logging.getLogger(__name__ + ".SetTopicMetadata")
+
+    def get_parser(self, prog_name):
+        parser = super(SetTopicMetadata, self).get_parser(prog_name)
+        parser.add_argument(
+            "topic_name",
+            metavar="<topic_name>",
+            help="Name of the topic")
+        parser.add_argument(
+            "topic_metadata",
+            metavar="<topic_metadata>",
+            help="Topic metadata, All the metadata of "
+                 "the topic will be replaced by topic_metadata")
+        return parser
+
+    def take_action(self, parsed_args):
+        client = _get_client(self, parsed_args)
+        topic_name = parsed_args.topic_name
+        topic_metadata = parsed_args.topic_metadata
+
+        try:
+            valid_metadata = json.loads(topic_metadata)
+        except ValueError:
+            raise RuntimeError("Topic metadata(%s) is not a valid json." %
+                               topic_metadata)
+
+        client.topic(topic_name, auto_create=False).\
+            metadata(new_meta=valid_metadata)
