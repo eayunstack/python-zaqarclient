@@ -288,3 +288,135 @@ def subscription_list(transport, request, topic_name, **kwargs):
         return {'links': [], 'subscriptions': []}
 
     return resp.deserialized_content
+
+
+def message_list(transport, request, queue_name, callback=None, **kwargs):
+    """Gets a list of messages in queue `queue_name`
+
+    :param transport: Transport instance to use
+    :type transport: `transport.base.Transport`
+    :param request: Request instance ready to be sent.
+    :type request: `transport.request.Request`
+    :param queue_name: Queue reference name.
+    :type queue_name: `six.text_type`
+    :param callback: Optional callable to use as callback.
+        If specified, this request will be sent asynchronously.
+        (IGNORED UNTIL ASYNC SUPPORT IS COMPLETE)
+    :type callback: Callable object.
+    :param kwargs: Optional arguments for this operation.
+        - marker: Where to start getting messages from.
+        - limit: Maximum number of messages to get.
+        - echo: Whether to get our own messages.
+        - include_claimed: Whether to include claimed
+            messages.
+    """
+
+    request.operation = 'message_list'
+    request.params['queue_name'] = queue_name
+
+    request.params.update(kwargs)
+
+    resp = transport.send(request)
+
+    if not resp.content:
+        return {'links': [], 'messages': []}
+
+    return resp.deserialized_content
+
+
+def message_consume(transport, request, queue_name, **kwargs):
+    """Consume messages on the queue `queue_name`
+
+    :param transport: Transport instance to use
+    :type transport: `transport.base.Transport`
+    :param request: Request instance ready to be sent.
+    :type request: `transport.request.Request`
+    """
+
+    request.operation = 'message_consume'
+    request.params['queue_name'] = queue_name
+
+    if 'limit' in kwargs:
+        request.params['limit'] = kwargs.pop('limit')
+    if 'auto_delete' in kwargs:
+        request.params['auto_delete'] = kwargs.pop('auto_delete')
+
+    request.content = json.dumps(kwargs)
+
+    resp = transport.send(request)
+    return resp.deserialized_content
+
+
+def message_consume_delete(transport, request, queue_name,
+                           consume_id, callback=None):
+    """Deletes consume messages from `queue_name`
+
+    :param transport: Transport instance to use
+    :type transport: `transport.base.Transport`
+    :param request: Request instance ready to be sent.
+    :type request: `transport.request.Request`
+    :param queue_name: Queue reference name.
+    :type queue_name: `six.text_type`
+    :param consume_id: Message consume reference.
+    :param consume_id: `six.text_type`
+    :param callback: Optional callable to use as callback.
+        If specified, this request will be sent asynchronously.
+        (IGNORED UNTIL ASYNC SUPPORT IS COMPLETE)
+    :type callback: Callable object.
+    """
+
+    request.operation = 'message_consume_delete'
+    request.params['queue_name'] = queue_name
+    request.params['consume_id'] = consume_id
+
+    transport.send(request)
+
+
+def message_consume_delete_many(transport, request, queue_name,
+                                ids, callback=None):
+    """Deletes `ids` messages from `queue_name`
+
+    :param transport: Transport instance to use
+    :type transport: `transport.base.Transport`
+    :param request: Request instance ready to be sent.
+    :type request: `transport.request.Request`
+    :param queue_name: Queue reference name.
+    :type queue_name: `six.text_type`
+    :param ids: Ids of the consume messages to delete
+    :type ids: List of `six.text_type`
+    :param callback: Optional callable to use as callback.
+        If specified, this request will be sent asynchronously.
+        (IGNORED UNTIL ASYNC SUPPORT IS COMPLETE)
+    :type callback: Callable object.
+    """
+
+    request.operation = 'message_consume_delete_many'
+    request.params['queue_name'] = queue_name
+    request.params['ids'] = ids
+    resp = transport.send(request)
+    return resp.deserialized_content
+
+
+def message_publish(transport, request, topic_name, messages, callback=None):
+    """Publish messages to `topic_name`
+
+    :param transport: Transport instance to use
+    :type transport: `transport.base.Transport`
+    :param request: Request instance ready to be sent.
+    :type request: `transport.request.Request`
+    :param topic_name: Topic reference name.
+    :type topic_name: `six.text_type`
+    :param messages: One or more messages to publish.
+    :param messages: `list`
+    :param callback: Optional callable to use as callback.
+        If specified, this request will be sent asynchronously.
+        (IGNORED UNTIL ASYNC SUPPORT IS COMPLETE)
+    :type callback: Callable object.
+    """
+
+    request.operation = 'message_publish'
+    request.params['topic_name'] = topic_name
+    request.content = json.dumps(messages)
+
+    resp = transport.send(request)
+    return resp.deserialized_content

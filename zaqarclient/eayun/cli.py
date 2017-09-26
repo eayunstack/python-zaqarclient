@@ -13,6 +13,7 @@
 #    under the License.
 
 import json
+import os
 
 from osc_lib import utils
 from osc_lib.command import command
@@ -424,3 +425,197 @@ class DeleteSubscription(command.Command):
         client.subscription(parsed_args.topic_name,
                             id=parsed_args.subscription_id,
                             auto_create=False).delete()
+
+
+class PostMessages(cli.PostMessages):
+    """Post messages for queue"""
+    pass
+
+
+class ListMessages(command.Lister):
+    """List all messages for a given queue"""
+
+    _description = _("List all messages for a given queue")
+    log = logging.getLogger(__name__ + ".ListMessages")
+
+    def get_parser(self, prog_name):
+        parser = super(ListMessages, self).get_parser(prog_name)
+        parser.add_argument(
+            "queue_name",
+            metavar="<queue_name>",
+            help="Name of the queue")
+        parser.add_argument(
+            "--limit",
+            metavar="<limit>",
+            type=int,
+            help="Maximum number of messages to get")
+        parser.add_argument(
+            "--marker",
+            metavar="<message_id>",
+            help="Message's paging marker, "
+            "the ID of the last message of the previous page")
+        parser.add_argument(
+            "--echo",
+            action="store_true",
+            help="Whether to get this client's own messages")
+        parser.add_argument(
+            "--include-claimed",
+            action="store_true",
+            help="Whether to include claimed messages")
+        parser.add_argument(
+            "--include-delayed",
+            action="store_true",
+            help="Whether to include delayed messages")
+        parser.add_argument(
+            "--client-id",
+            metavar="<client_id>",
+            default=os.environ.get("OS_MESSAGE_CLIENT_ID"),
+            help="A UUID for each client instance.")
+        return parser
+
+    def take_action(self, parsed_args):
+        client = _get_client(self, parsed_args)
+
+        if not parsed_args.client_id:
+            raise AttributeError("<--client-id> option is missing and "
+                                 "environment variable OS_MESSAGE_CLIENT_ID "
+                                 "is not set. Please at least either pass in "
+                                 "the client id or set the environment "
+                                 "variable")
+        else:
+            client.client_uuid = parsed_args.client_id
+
+        kwargs = {}
+        if parsed_args.limit is not None:
+            kwargs["limit"] = parsed_args.limit
+        if parsed_args.marker is not None:
+            kwargs["marker"] = parsed_args.marker
+        if parsed_args.echo is not None:
+            kwargs["echo"] = parsed_args.echo
+        if parsed_args.include_claimed is not None:
+            kwargs["include_claimed"] = parsed_args.include_claimed
+        if parsed_args.include_delayed is not None:
+            kwargs["include_delayed"] = parsed_args.include_delayed
+
+        queue = client.queue(parsed_args.queue_name)
+
+        messages = queue.messages(**kwargs)
+
+        columns = ("ID", "TTL", "Age", "Status", "Status_End_Time")
+        return (columns,
+                (utils.get_item_properties(s, columns) for s in messages))
+
+
+class ConsumeMessages(command.Lister):
+    """Consume messages from a queue."""
+
+    _description = _("Consume messages and return a list of consume messages")
+    log = logging.getLogger(__name__ + ".ConsumeMessages")
+
+    def get_parser(self, prog_name):
+        parser = super(ConsumeMessages, self).get_parser(prog_name)
+        parser.add_argument(
+            "queue_name",
+            metavar="<queue_name>",
+            help="Name of the queue to be claim")
+        parser.add_argument(
+            "--limit",
+            metavar="<limit>",
+            type=int,
+            default=10,
+            help="Consumes a set of messages, up to limit")
+        parser.add_argument(
+            "--auto-delete",
+            type=int,
+            help="Whether to auto delete the consume messages")
+
+        return parser
+
+    def take_action(self, parsed_args):
+        client = _get_client(self, parsed_args)
+
+        kwargs = {}
+        if parsed_args.limit is not None:
+            kwargs["limit"] = parsed_args.limit
+        if parsed_args.auto_delete is not None:
+            kwargs["auto_delete"] = parsed_args.auto_delete
+
+        queue = client.queue(parsed_args.queue_name, auto_create=False)
+        keys = ("body", "handle", "id", "ttl", "age", "consume_count",
+                "first_consumed_at", "next_consume_at", "created_at",)
+        columns = ("Messages", "Handle", "Message_ID", "TTL", "Age", "Times",
+                   "Initial Time", "Next Time", "Created At")
+        data = queue.consume(**kwargs)
+        return (columns,
+                (utils.get_item_properties(s, keys) for s in data))
+
+
+class ConsumeMessagesDelete(command.ShowOne):
+    """Delete a consume messages"""
+
+    _description = _("Delete consume messages")
+    log = logging.getLogger(__name__ + ".ConsumeMessagesDelete")
+
+    def get_parser(self, prog_name):
+        parser = super(ConsumeMessagesDelete, self).get_parser(prog_name)
+        parser.add_argument(
+            "queue_name",
+            metavar="<queue_name>",
+            help="Name of the queue")
+        parser.add_argument(
+            "handles",
+            metavar="<handles>",
+            help="Handles for consume messages.")
+        return parser
+
+    def take_action(self, parsed_args):
+        client = _get_client(self, parsed_args)
+        queue = client.queue(parsed_args.queue_name, auto_create=False)
+        handles = []
+        if parsed_args.handles:
+            handles = parsed_args.handles.split(',')
+        data = queue.consume_delete(handles)
+        columns = ("Expired", "Invalid", "Success")
+        if data:
+            return columns, utils.get_dict_properties(data, columns)
+        return columns, (None, None, handles)
+
+
+class PublishMessages(command.Command):
+    """Publish messages for to a given topic"""
+
+    _description = _("Publish messages for a given topic")
+    log = logging.getLogger(__name__ + ".PublishMessages")
+
+    def get_parser(self, prog_name):
+        parser = super(PublishMessages, self).get_parser(prog_name)
+        parser.add_argument(
+            "topic_name",
+            metavar="<topic_name>",
+            help="Name of the topic")
+        parser.add_argument(
+            "messages",
+            type=json.loads,
+            metavar="<messages>",
+            help="Messages to be published.")
+        parser.add_argument(
+            "--client-id",
+            metavar="<client_id>",
+            default=os.environ.get("OS_MESSAGE_CLIENT_ID"),
+            help="A UUID for each client instance.")
+        return parser
+
+    def take_action(self, parsed_args):
+        client = _get_client(self, parsed_args)
+
+        if not parsed_args.client_id:
+            raise AttributeError("<--client-id> option is missing and "
+                                 "environment variable OS_MESSAGE_CLIENT_ID "
+                                 "is not set. Please at least either pass in "
+                                 "the client id or set the environment "
+                                 "variable")
+        else:
+            client.client_uuid = parsed_args.client_id
+
+        topic = client.topic(parsed_args.topic_name)
+        topic.publish(parsed_args.messages)

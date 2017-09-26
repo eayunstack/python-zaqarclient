@@ -147,6 +147,26 @@ class Topic(object):
         req, trans = self.client._request_and_transport()
         core.topic_delete(trans, req, self._name)
 
+    def publish(self, messages):
+        """Publishs one or more messages to this topic
+
+        :param messages: One or more messages to publish
+        :type messages: `list` or `dict`
+
+        :returns: A dict with the result of this operation.
+        :rtype: `dict`
+        """
+        if not isinstance(messages, list):
+            messages = [messages]
+
+        if self.client.api_version >= 1.1:
+            messages = {'messages': messages}
+
+        req, trans = self.client._request_and_transport()
+
+        return core.message_publish(trans, req,
+                                    self._name, messages)
+
 
 def create_object(parent):
     return lambda args: Topic(parent, args["name"], href=args.get("href"),

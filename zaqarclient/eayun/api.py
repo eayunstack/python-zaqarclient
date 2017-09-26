@@ -130,4 +130,53 @@ Es.schema.update({
             'subscription_id': {'type': 'string'}
         }
     },
+    'message_list': {
+        'ref': 'queues/{queue_name}/messages',
+        'method': 'GET',
+        'required': ['queue_name'],
+        'properties': {
+            'queue_name': {'type': 'string'},
+            'marker': {'type': 'string'},
+            'limit': {'type': 'integer'},
+            'echo': {'type': 'boolean'},
+            'include_claimed': {'type': 'boolean'},
+            'include_delayed': {'type': 'boolean'},
+        }
+    },
+    'message_consume': {
+        'ref': 'queues/{queue_name}/consume',
+        'method': 'GET',
+        'required': ['queue_name'],
+        'properties': {
+            'queue_name': {'type': 'string'},
+            'auto_delete': {'type': 'string'},
+            'limit': {'type': 'integer'},
+        }
+    },
+    'message_consume_delete': {
+        'ref': 'queues/{queue_name}/consume/{consume_id}',
+        'method': 'DELETE',
+        'required': ['queue_name', 'consume_id'],
+        'properties': {
+            'queue_name': {'type': 'string'},
+            'consume_id': {'type': 'string'},
+        }
+    },
+    'message_consume_delete_many': {
+        'ref': 'queues/{queue_name}/consume',
+        'method': 'DELETE',
+        'required': ['queue_name', 'ids'],
+        'properties': {
+            'queue_name': {'type': 'string'},
+            'ids': {'type': 'string'},
+        }
+    },
+    'message_publish': {
+        'ref': 'topics/{topic_name}/messages',
+        'method': 'POST',
+        'required': ['topic_name'],
+        'properties': {
+            'topic_name': {'type': 'string'},
+        }
+    },
 })
