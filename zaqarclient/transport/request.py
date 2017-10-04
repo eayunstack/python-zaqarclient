@@ -107,6 +107,9 @@ class Request(object):
         elif api:
             self._api_mod = 'queues.v' + str(api)
 
+        if api and int(api) == 100:
+            self._api_mod = 'eayun'
+
         self.endpoint = endpoint
         self.operation = operation
         self.ref = ref

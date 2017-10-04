@@ -78,7 +78,9 @@ class HttpTransport(base.Transport):
         # NOTE(flape87): Do not modify
         # request's headers directly.
         headers = request.headers.copy()
-        if (request.operation == 'queue_update' and
+        updates_op = ['queue_update', 'topic_update',
+                      'subscription_update']
+        if (request.operation in updates_op and
                 (version.LooseVersion(request.api.label) >=
                     version.LooseVersion('v2'))):
             headers['content-type'] = \
