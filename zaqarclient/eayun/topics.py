@@ -133,7 +133,7 @@ class Topic(object):
             changes = []
             for key, value in new_meta.items():
                 # If key exists, replace it's value.
-                if self._metadata.get(key, None):
+                if key in self._metadata:
                     changes.append({'op': 'replace',
                                     'path': '/metadata/%s' % key,
                                     'value': value})
